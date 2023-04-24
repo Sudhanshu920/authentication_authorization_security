@@ -19,6 +19,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'please provide a password'],
     minlength: 8,
+    select: false,
   },
   passwordConfirm: {
     type: String,
@@ -30,6 +31,7 @@ const userSchema = new mongoose.Schema({
       message: 'password and passwordConfirm should be same',
     },
   },
+  passwordChangedAt: Date,
 });
 
 userSchema.pre('save', async function (next) {
@@ -40,6 +42,19 @@ userSchema.pre('save', async function (next) {
   this.passwordConfirm = undefined;
   next();
 });
+
+userSchema.methods.checkPassword = async (enteredPassword, userPassword) => {
+  return await bcrypt.compare(enteredPassword, userPassword);
+};
+
+userSchema.methods.changedPasswordAfter = function (tokenTime) {
+  if (this.passwordChangedAt) {
+    const changeTimeStamp = parseInt(this.passwordChangedAt.getTime() / 1000);
+    return tokenTime < changeTimeStamp;
+  }
+
+  return false;
+};
 
 const User = mongoose.model('User', userSchema);
 
